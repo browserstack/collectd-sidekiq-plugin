@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/garyburd/redigo/redis"
 	"github.com/jrallison/go-workers"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
@@ -35,9 +36,25 @@ func setup(server string, database string, pool string, queues string) {
 		"process": "1",
 	})
 
-	for _, q := range strings.Split(queues, ",") {
-		// Register each queue with the workers library, so it's picked up on calls to workers.Stats()
-		workers.Process(q, func(message *workers.Msg) {}, 0)
+	if queues == "all" {
+		redisClient, err := redis.Dial("tcp", server)
+		if err != nil {
+			fmt.Println(err)
+		}
+		allQueues, err := redis.Strings(redisClient.Do("smembers", "queues"))
+		if err != nil {
+			fmt.Println(err)
+		}
+		for _, eachQueue := range allQueues {
+			// Register each queue with the workers library, so it's picked up on calls to workers.Stats()
+			workers.Process(eachQueue, func(message *workers.Msg) {}, 0)
+		}
+		defer redisClient.Close()
+	} else {
+		for _, q := range strings.Split(queues, ",") {
+			// Register each queue with the workers library, so it's picked up on calls to workers.Stats()
+			workers.Process(q, func(message *workers.Msg) {}, 0)
+		}
 	}
 }
 

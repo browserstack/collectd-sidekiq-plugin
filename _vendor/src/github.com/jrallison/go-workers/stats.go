@@ -64,7 +64,10 @@ func Stats(w http.ResponseWriter, req *http.Request) {
 	conn.Send("scard", Config.Namespace+"processes")
 	conn.Send("zcard", Config.Namespace+"schedule")
 
+	allQueues := make([]string, 0)
+
 	for key, _ := range enqueued {
+		allQueues = append(allQueues, key)
 		conn.Send("llen", fmt.Sprintf("%squeue:%s", Config.Namespace, key))
 	}
 
@@ -107,7 +110,7 @@ func Stats(w http.ResponseWriter, req *http.Request) {
 			}
 
 			queueIndex := 0
-			for key, _ := range enqueued {
+			for _, key := range allQueues {
 				if queueIndex == (index - 6) {
 					enqueued[key] = fmt.Sprintf("%d", result.(int64))
 				}

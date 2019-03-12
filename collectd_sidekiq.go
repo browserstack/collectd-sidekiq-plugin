@@ -41,6 +41,8 @@ func setup(server string, database string, pool string, queues string) {
 		if err != nil {
 			fmt.Println(err)
 		}
+		defer redisClient.Close()
+
 		allQueues, err := redis.Strings(redisClient.Do("smembers", "queues"))
 		if err != nil {
 			fmt.Println(err)
@@ -49,7 +51,6 @@ func setup(server string, database string, pool string, queues string) {
 			// Register each queue with the workers library, so it's picked up on calls to workers.Stats()
 			workers.Process(eachQueue, func(message *workers.Msg) {}, 0)
 		}
-		defer redisClient.Close()
 	} else {
 		for _, q := range strings.Split(queues, ",") {
 			// Register each queue with the workers library, so it's picked up on calls to workers.Stats()
